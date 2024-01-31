@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace DataBase
 {
-    internal class Client
+    public class Client
     {
+        public string UserName { get; set; }
+        public Guid Id { get; set; }
+        public Guid CardId { get; set; }
     }
 }
