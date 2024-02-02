@@ -17,6 +17,8 @@ namespace DataBase.Abstractions.Entities
 
 public enum Type
 {
-    Standart,
-    Premium
+    Sport,
+    SportPool,
+    Premium,
+    LuxSpa
 }
