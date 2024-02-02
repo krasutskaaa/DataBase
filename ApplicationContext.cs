@@ -1,5 +1,6 @@
 ﻿using DataBase.Abstractions.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Conventions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +19,7 @@ namespace DataBase
         {
             optionsBuilder.UseSqlite("Data Source=helloapp.db");
         }
-        public void AddClient(string realName, string username, Guid cardId)
+        public void AddClient(string realName, string username)
         {
             if (clients.Any(client => client.Username.Equals(username)))
                 throw new ArgumentException("The username already exists", nameof(username));
@@ -35,7 +36,7 @@ namespace DataBase
         public void AddCard(Guid clientId, Type cardType, bool isActive)
         {
             if (!clients.Any(client => client.Id.Equals(clientId)))
-                throw new ArgumentException("User not found", nameof(clientId));
+                throw new ArgumentException("The card isn't found", nameof(clientId));
             using (ApplicationContext db = new ApplicationContext())
             {
                 db.cards.Add(new Card
@@ -65,8 +66,8 @@ namespace DataBase
         }
         public void RemoveClient(string username)
         {
-            if (!clients.Any(client => client.Id.Equals(username)))
-                throw new ArgumentException("User not found", nameof(clientId));
+            if (!clients.Any(client => client.Username.Equals(username)))
+                throw new ArgumentException("The client isn't found", nameof(username));
             using (ApplicationContext db = new ApplicationContext())
             {
                 Client? client = db.clients.FirstOrDefault(client => client.Username.Equals(username));
@@ -77,20 +78,77 @@ namespace DataBase
                 }
             }
         }
-        public void RemoveClient(string username)
+        public void RemoveCard(Guid clientId)
         {
-            if (!clients.Any(client => client.Id.Equals(username)))
-                throw new ArgumentException("User not found", nameof(clientId));
+            if (!clients.Any(client => client.Id.Equals(clientId)))
+                throw new ArgumentException("The card isn't found", nameof(clientId));
             using (ApplicationContext db = new ApplicationContext())
             {
-                Client? client = db.clients.FirstOrDefault(client => client.Username.Equals(username));
-                if (client != null)
+                Card? card = db.cards.FirstOrDefault(card => card.ClientId.Equals(clientId));
+                if (card != null)
                 {
-                    db.clients.Remove(client);
+                    db.cards.Remove(card);
                     db.SaveChanges();
                 }
             }
         }
+        public void EditClient(string realName, string username)
+        {
+            if (!clients.Any(client => client.Username.Equals(username)))
+                throw new ArgumentException("The client isn't found", nameof(username));
+            using (ApplicationContext db = new ApplicationContext())
+            {
+                Client? client = db.clients.FirstOrDefault(client => client.Username.Equals(username));
+                if(client != null)
+                {
+                    client.RealName = realName;
+                    db.SaveChanges();
+                }
+               
+            }
+        }
+        public void EditCard(Guid clientId, Type cardType, bool isActive)
+        {
+            if (!clients.Any(client => client.Id.Equals(clientId)))
+                throw new ArgumentException("The card isn't found", nameof(clientId));
+            using (ApplicationContext db = new ApplicationContext())
+            {
+                Card? card = db.cards.FirstOrDefault(card => card.ClientId.Equals(clientId));
+                if (card != null)
+                {
+                    card.CardType = cardType;
+                    card.IsActive = isActive;
+                    db.SaveChanges();
+                }
+            }
+        }
+      
+        public IEnumerable<Client> GetClientsByCardType (Type cardType)
+        {
+            foreach (var card in cards)
+            {
+                if (card.CardType.Equals(cardType))
+                {
+                    yield return clients.FirstOrDefault(client
+                        => client.Id.Equals(card.ClientId));
+                }
+            }
+        }
+        public void DeleteClientAndCardByCardIsActive()
+        {
+            foreach(var card in cards)
+            {
+                if(card.IsActive.Equals(false)&& DateTime.Now.Subtract(card.CreateTime)>TimeSpan.FromDays(365))
+                {
+                    clients.Remove(clients.FirstOrDefault(client => client.Id.Equals(card.ClientId)));
+                    cards.Remove(card);
+                }
+            }
+        }
+        
+
+
+        public Card GetCardByClientUserName()
 
 
     }
