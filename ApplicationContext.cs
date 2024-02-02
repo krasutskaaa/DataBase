@@ -125,6 +125,8 @@ namespace DataBase
       
         public IEnumerable<Client> GetClientsByCardType (Type cardType)
         {
+            if (!cards.Any(card => card.CardType.Equals(cardType)))
+                throw new ArgumentException("There aren't exist any cards with such type",nameof(cardType));
             foreach (var card in cards)
             {
                 if (card.CardType.Equals(cardType))
@@ -145,11 +147,24 @@ namespace DataBase
                 }
             }
         }
-        
 
-
-        public Card GetCardByClientUserName()
-
-
+        public Client GetClientByCardClientId(Guid clientId)
+        {
+            if (!clients.Any(client => client.Id.Equals(clientId)))
+                throw new ArgumentException("The client isn't found", nameof(clientId));
+            return clients.FirstOrDefault(client => client.Id.Equals(clientId));
+        }
+        public IEnumerable<Card> GetCardByClientUserName(string username)
+        {
+            if (!clients.Any(client => client.Username.Equals(username)))
+                throw new ArgumentException("The client doesn't exist", nameof(username));
+            foreach (var client in clients)
+            {
+                if(client.Username.Equals(username))
+                {
+                    yield return cards.FirstOrDefault(card => card.ClientId.Equals(client.Id));
+                }
+            }
+        }
     }
 }
