@@ -12,11 +12,11 @@ namespace DataBase
 {
     public class ApplicationContextOperationsManager
     {
-        public void AddClient(string realName, string username, Gender gender, Guid coachId)
+        public void AddClient(string realName, string username, Gender gender, Guid? coachId)
         {
             using (ApplicationContext db = new ApplicationContext())
             {
-                if (!db.Clients.Any(client => client.Username.Equals(username)))
+                if (db.Clients.Any(client => client.Username.Equals(username)))
                     throw new ArgumentException("The username already exists", nameof(username));
                 db.Clients.Add(new Client
                 {
@@ -32,8 +32,8 @@ namespace DataBase
         {
             using (ApplicationContext db = new ApplicationContext())
             {
-                if (!db.Clients.Any(client => client.Id.Equals(clientId)))
-                    throw new ArgumentException("The card isn't found", nameof(clientId));
+                if (db.Cards.Any(card => card.ClientId.Equals(clientId)))
+                    throw new ArgumentException("The card already exists", nameof(clientId));
                 db.Cards.Add(new Card
                 {
                     ClientId = clientId,
@@ -100,7 +100,7 @@ namespace DataBase
         {
             using (ApplicationContext db = new ApplicationContext())
             {
-                if (!db.Clients.Any(client => client.Id.Equals(clientId)))
+                if (!db.Cards.Any(card => card.ClientId.Equals(clientId)))
                     throw new ArgumentException("The card isn't found", nameof(clientId));
                 Card? card = db.Cards.FirstOrDefault(card => card.ClientId.Equals(clientId));
                 if (card != null)
@@ -144,7 +144,7 @@ namespace DataBase
         {
             using (ApplicationContext db = new ApplicationContext())
             {
-                if (!db.Clients.Any(client => client.Id.Equals(clientId)))
+                if (!db.Cards.Any(card => card.ClientId.Equals(clientId)))
                     throw new ArgumentException("The card isn't found", nameof(clientId));
                 Card? card = db.Cards.FirstOrDefault(card => card.ClientId.Equals(clientId));
                 if (card != null)
@@ -171,27 +171,29 @@ namespace DataBase
             }
         }
 
-        public IEnumerable<Client> GetClientsByCardType(Type cardType)
+        public List<Client> GetClientsByCardType(Type cardType)
         {
             using (ApplicationContext db = new ApplicationContext())
             {
                 if (!db.Cards.Any(card => card.CardType.Equals(cardType)))
-                    throw new ArgumentException("There aren't exist any cards with such type", nameof(cardType));
+                    throw new ArgumentException("There aren't  any cards with such type", nameof(cardType));
                 var clientIds = db.Cards.Where(card => card.CardType.Equals(cardType)).Select(card => card.ClientId);
-                var clients = db.Clients.Where(client => clientIds.Contains(client.Id));
+                var clients = db.Clients.Where(client => clientIds.Contains(client.Id)).ToList();
                 return clients;
             } 
         }
-        public void DeleteClientAndCardByCardIsActive()
+        public void DeleteClientAndCardByCardIsInactive()
         {
             using (ApplicationContext db = new ApplicationContext())
             {
                 foreach (var card in db.Cards)
                 {
-                    if (card.IsActive.Equals(false) && DateTime.Now.Subtract(card.CreateTime) > TimeSpan.FromDays(365))
+                    // the statement if can be changed due to customer needs
+                    if (card.IsActive.Equals(false) && DateTime.Now.Subtract(card.CreateTime).TotalMinutes > 10)
                     {
-                        db.Clients.Remove(db.Clients?.FirstOrDefault(client => client.Id.Equals(card.ClientId)));
+                        db.Clients.Remove(db.Clients.FirstOrDefault(client => client.Id.Equals(card.ClientId)));
                         db.Cards.Remove(card);
+                        db.SaveChanges();
                     }
                 }
             }   
@@ -202,7 +204,8 @@ namespace DataBase
             {
                 if (!db.Clients.Any(client => client.Id.Equals(clientId)))
                     throw new ArgumentException("The client isn't found", nameof(clientId));
-                return db?.Clients.FirstOrDefault(client => client.Id.Equals(clientId));
+                var client = db?.Clients.FirstOrDefault(client => client.Id.Equals(clientId));
+                return client;
             }
         }
         public Card GetCardByClientUsername(string username)
@@ -217,25 +220,26 @@ namespace DataBase
             }
         }
 
-        public IEnumerable<Coach> GetCoachesByGender(Gender gender)
+        public List<Coach> GetCoachesByGender(Gender gender)
         {
             using (ApplicationContext db = new ApplicationContext())
             {
                 if (!db.Coaches.Any(coach => coach.Gender.Equals(gender)))
                     throw new ArgumentException("There aren't any coaches with such gender", nameof(gender));
-                var coaches = db.Coaches.Where(coach => coach.Gender.Equals(gender));
+                var coaches = db.Coaches.Where(coach => coach.Gender.Equals(gender)).ToList();
                 return coaches;
             }
         }
 
-        public IEnumerable<Client> GetClientsByCoachUsername(string username)
+        public List<Client> GetClientsByCoachUsername(string username)
         {
             using (ApplicationContext db = new ApplicationContext())
             {
                 if (!db.Coaches.Any(coach => coach.Username.Equals(username)))
                     throw new ArgumentException("There aren't any coaches with the username", nameof(username));
                 var coach = db?.Coaches.FirstOrDefault(coach => coach.Username.Equals(username));
-                return db.Clients.Where(client => client.CoachId.Equals(coach.Id));
+                var clients = db?.Clients.Where(client => client.CoachId.Equals(coach.Id)).ToList();
+                return clients;
             }   
         }
     }
