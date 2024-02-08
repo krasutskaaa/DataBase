@@ -2,6 +2,7 @@
 using DataBase.Abstractions.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,13 +19,18 @@ namespace DataBase
         public DbSet<Card> Cards => Set<Card>();
         public DbSet<Coach> Coaches => Set<Coach>();
         public ApplicationContext()
+            : base()
         {
             Database.EnsureCreated();
             //Database.EnsureDeleted();
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlite("Data Source=fitnesscenter.db");
+            var config = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json")
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .Build();
+            optionsBuilder.UseSqlite(config.GetConnectionString("DefaultConnection"));
         }
        
     }
